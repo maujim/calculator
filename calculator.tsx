@@ -14,6 +14,8 @@ export default function Calculator() {
   const [result, setResult] = React.useState<string>("")
   const [history, setHistory] = React.useState<Array<{ input: string; result: string; count?: number }>>([])
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const [lastEquation, setLastEquation] = React.useState<string>("")
+  const [isHistoryVisible, setIsHistoryVisible] = React.useState<boolean>(false)
 
   // Focus the input on initial render
   React.useEffect(() => {
@@ -40,6 +42,7 @@ export default function Calculator() {
 
       // Update state
       setResult(calculatedResult.toString())
+      setLastEquation(input) // Store the last equation
 
       // Add to history with grouping for consecutive identical calculations
       setHistory((prev) => {
@@ -130,133 +133,200 @@ export default function Calculator() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 w-full max-w-4xl mx-auto p-4">
-      {/* Calculator */}
-      <Card className="w-full md:w-2/3">
-        <CardContent className="p-6">
-          <div className="flex flex-col space-y-4">
-            {/* Input and Result */}
-            <div className="space-y-2">
-              <Input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Enter expression..."
-                className="text-xl font-mono p-4 h-14"
-              />
-              <div className="text-right text-2xl font-mono h-8 text-primary">{result}</div>
-            </div>
+    <div className="w-full max-w-4xl mx-auto p-4">
+      {/* Mobile History Toggle Button */}
+      <div className="md:hidden mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold">Calculator</h2>
+        <Button
+          variant="outline"
+          onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+          className="flex items-center gap-2"
+        >
+          {isHistoryVisible ? "Hide" : "Show"} History
+          {history.length > 0 && (
+            <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {history.length}
+            </span>
+          )}
+        </Button>
+      </div>
 
-            {/* Scientific Functions */}
-            <div className="grid grid-cols-4 gap-2">
-              {["sin", "cos", "tan", "^"].map((btn) => (
-                <Button key={btn} variant="outline" onClick={() => handleButtonClick(btn)} className="h-10">
-                  {btn}
-                </Button>
-              ))}
-              {["log", "ln", "sqrt", "π"].map((btn) => (
-                <Button key={btn} variant="outline" onClick={() => handleButtonClick(btn)} className="h-10">
-                  {btn}
-                </Button>
-              ))}
-            </div>
+      {/* Mobile History Panel (Conditionally Rendered) */}
+      {isHistoryVisible && (
+        <div className="md:hidden mb-4">
+          <Card className="w-full">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-medium">History</h3>
+                {history.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearHistory} className="h-8 px-2">
+                    Clear <X className="ml-1 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Separator className="mb-2" />
+              <ScrollArea className="h-[200px]">
+                {history.length > 0 ? (
+                  <div className="space-y-2">
+                    {history.map((item, index) => (
+                      <Card
+                        key={index}
+                        className="p-2 cursor-pointer hover:bg-muted/50 transition-colors relative overflow-visible"
+                        onClick={() => handleHistoryItemClick(item)}
+                      >
+                        <div className="text-sm font-mono">{item.input}</div>
+                        <div className="text-right text-sm font-medium text-primary">{item.result}</div>
+                        {item.count && item.count > 1 && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center z-10">
+                            {item.count}
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">No calculations yet</div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-            {/* Number Pad and Operators */}
-            <div className="grid grid-cols-4 gap-2">
-              {["7", "8", "9", "/"].map((btn) => (
-                <Button
-                  key={btn}
-                  variant={btn === "/" ? "secondary" : "outline"}
-                  onClick={() => handleButtonClick(btn)}
-                  className="h-12 text-lg"
-                >
-                  {btn}
-                </Button>
-              ))}
-              {["4", "5", "6", "*"].map((btn) => (
-                <Button
-                  key={btn}
-                  variant={btn === "*" ? "secondary" : "outline"}
-                  onClick={() => handleButtonClick(btn)}
-                  className="h-12 text-lg"
-                >
-                  {btn}
-                </Button>
-              ))}
-              {["1", "2", "3", "-"].map((btn) => (
-                <Button
-                  key={btn}
-                  variant={btn === "-" ? "secondary" : "outline"}
-                  onClick={() => handleButtonClick(btn)}
-                  className="h-12 text-lg"
-                >
-                  {btn}
-                </Button>
-              ))}
-              {["0", ".", "=", "+"].map((btn) => (
-                <Button
-                  key={btn}
-                  variant={btn === "=" ? "default" : btn === "+" ? "secondary" : "outline"}
-                  onClick={() => handleButtonClick(btn)}
-                  className={cn("h-12 text-lg", btn === "=" && "bg-primary text-primary-foreground")}
-                >
-                  {btn}
-                </Button>
-              ))}
-            </div>
-
-            {/* Control Buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="destructive" onClick={() => handleButtonClick("C")} className="h-12">
-                Clear
-              </Button>
-              <Button variant="outline" onClick={() => handleButtonClick("←")} className="h-12">
-                Backspace
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* History Panel */}
-      <Card className="w-full md:w-1/3">
-        <CardContent className="p-4 h-full">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium">History</h3>
-            {history.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearHistory} className="h-8 px-2">
-                Clear <X className="ml-1 h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <Separator className="mb-2" />
-          <ScrollArea className="h-[calc(100vh-14rem)] md:h-[500px]">
-            {history.length > 0 ? (
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Calculator */}
+        <Card className="w-full md:w-2/3">
+          <CardContent className="p-6">
+            <div className="flex flex-col space-y-4">
+              {/* Input and Result with Last Equation */}
               <div className="space-y-2">
-                {history.map((item, index) => (
-                  <Card
-                    key={index}
-                    className="p-2 cursor-pointer hover:bg-muted/50 transition-colors relative"
-                    onClick={() => handleHistoryItemClick(item)}
-                  >
-                    <div className="text-sm font-mono">{item.input}</div>
-                    <div className="text-right text-sm font-medium text-primary">{item.result}</div>
-                    {item.count && item.count > 1 && (
-                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {item.count}
-                      </div>
-                    )}
-                  </Card>
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter expression..."
+                  className="text-xl font-mono p-4 h-14"
+                />
+                <div className="flex flex-col">
+                  {lastEquation && result && (
+                    <div className="text-right text-sm text-muted-foreground font-mono truncate">{lastEquation}</div>
+                  )}
+                  <div className="text-right text-2xl font-mono h-8 text-primary">{result}</div>
+                </div>
+              </div>
+
+              {/* Rest of the calculator UI remains the same */}
+              {/* Scientific Functions */}
+              <div className="grid grid-cols-4 gap-2">
+                {["sin", "cos", "tan", "^"].map((btn) => (
+                  <Button key={btn} variant="outline" onClick={() => handleButtonClick(btn)} className="h-10">
+                    {btn}
+                  </Button>
+                ))}
+                {["log", "ln", "sqrt", "π"].map((btn) => (
+                  <Button key={btn} variant="outline" onClick={() => handleButtonClick(btn)} className="h-10">
+                    {btn}
+                  </Button>
                 ))}
               </div>
-            ) : (
-              <div className="text-center text-muted-foreground py-4">No calculations yet</div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+
+              {/* Number Pad and Operators */}
+              <div className="grid grid-cols-4 gap-2">
+                {["7", "8", "9", "/"].map((btn) => (
+                  <Button
+                    key={btn}
+                    variant={btn === "/" ? "secondary" : "outline"}
+                    onClick={() => handleButtonClick(btn)}
+                    className="h-12 text-lg"
+                  >
+                    {btn}
+                  </Button>
+                ))}
+                {["4", "5", "6", "*"].map((btn) => (
+                  <Button
+                    key={btn}
+                    variant={btn === "*" ? "secondary" : "outline"}
+                    onClick={() => handleButtonClick(btn)}
+                    className="h-12 text-lg"
+                  >
+                    {btn}
+                  </Button>
+                ))}
+                {["1", "2", "3", "-"].map((btn) => (
+                  <Button
+                    key={btn}
+                    variant={btn === "-" ? "secondary" : "outline"}
+                    onClick={() => handleButtonClick(btn)}
+                    className="h-12 text-lg"
+                  >
+                    {btn}
+                  </Button>
+                ))}
+                {["0", ".", "=", "+"].map((btn) => (
+                  <Button
+                    key={btn}
+                    variant={btn === "=" ? "default" : btn === "+" ? "secondary" : "outline"}
+                    onClick={() => handleButtonClick(btn)}
+                    className={cn("h-12 text-lg", btn === "=" && "bg-primary text-primary-foreground")}
+                  >
+                    {btn}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Control Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="destructive" onClick={() => handleButtonClick("C")} className="h-12">
+                  Clear
+                </Button>
+                <Button variant="outline" onClick={() => handleButtonClick("←")} className="h-12">
+                  Backspace
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Desktop History Panel (Always Visible on Desktop) */}
+        <Card className="hidden md:block w-full md:w-1/3">
+          <CardContent className="p-4 h-full">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">History</h3>
+              {history.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearHistory} className="h-8 px-2">
+                  Clear <X className="ml-1 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Separator className="mb-2" />
+            <ScrollArea className="h-[calc(100vh-14rem)] md:h-[500px]">
+              {history.length > 0 ? (
+                <div className="space-y-2">
+                  {history.map((item, index) => (
+                    <Card
+                      key={index}
+                      className="p-2 cursor-pointer hover:bg-muted/50 transition-colors relative overflow-visible"
+                      onClick={() => handleHistoryItemClick(item)}
+                    >
+                      <div className="text-sm font-mono">{item.input}</div>
+                      <div className="text-right text-sm font-medium text-primary">{item.result}</div>
+                      {item.count && item.count > 1 && (
+                        <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center z-10">
+                          {item.count}
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-4">No calculations yet</div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
